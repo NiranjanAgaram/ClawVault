@@ -31,29 +31,6 @@ graph TD
 *   **Traceability:** Each record is annotated with a deterministic ingestion key: `signature`, `slot`, `source_rpc`, and `ingestion_ts` to support downstream idempotency and replay.
 
 ### Silver Layer – Normalization and Feature Indexing
-
--- Silver Layer: Liquidity Lock Events
-CREATE TABLE liquidity_lock_events (
-    signature CHAR(88) PRIMARY KEY,
-    slot BIGINT NOT NULL,
-    pool_address CHAR(44),
-    token_mint CHAR(44),
-    locked_notional_usd DECIMAL(18, 2),
-    lock_duration_seconds INT,
-    unlock_timestamp TIMESTAMP,
-    ingestion_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Silver Layer: Whale Signatures
-CREATE TABLE whale_signatures (
-    address CHAR(44) PRIMARY KEY,
-    whale_score INT,
-    total_volume_30d_usd DECIMAL(18, 2),
-    capital_rotation_velocity FLOAT,
-    last_active_slot BIGINT
-);
-
-
 A dedicated service decodes binary/hex data into structured, SQL-ready entities (transactions, instructions, accounts, and events).
 *   **Whale Identification:** Pipelines compute address-level metrics (notional volume, velocity of capital rotation). Addresses breaching thresholds are tagged with a `whale_score`.
 *   **Liquidity-Lock Detection:** Inspects instructions for known lock patterns (LP positions sent to lock contracts, time-locked vaults, renounced authorities). 
