@@ -14,12 +14,46 @@ ClawVault is a production-grade AI Agent instance built on the **OpenClaw** fram
 ## 2. Data Pipeline Architecture
 The ClawVault data plane is organized as a classic lakehouse, optimized for low-latency Solana ingestion and AI-grade analytics.
 
+graph TD
+    A[Solana RPC: Helius/Alchemy] -->|Raw Logs| B(Bronze: Append-Only Storage)
+    B -->|Normalization| C(Silver: Indexed SQL Tables)
+    C -->|Whale Scoring| D(Gold: Analytic Warehouse)
+    C -->|Lock Detection| D
+    E[Off-Chain Signals: X/Discord] -->|Embeddings| F(Vector DB)
+    D --> G{OpenClaw Agent}
+    F --> G
+    G -->|RAG Narrative| H[Investor Risk Report]
+    style G fill:#f96,stroke:#333,stroke-width:4px
+
 ### Bronze Layer – Raw Ingestion (Helius/Alchemy RPC)
 *   **Streaming Ingestion:** Maintains a loop against Helius/Alchemy Solana RPC endpoints, pulling confirmed transaction logs, account deltas, and program instruction traces.
 *   **Append-Only Store:** Payloads are persisted in a raw store with no mutation, preserving exact RPC responses (hex-encoded instructions, signatures, slot, and log messages).
 *   **Traceability:** Each record is annotated with a deterministic ingestion key: `signature`, `slot`, `source_rpc`, and `ingestion_ts` to support downstream idempotency and replay.
 
 ### Silver Layer – Normalization and Feature Indexing
+
+-- Silver Layer: Liquidity Lock Events
+CREATE TABLE liquidity_lock_events (
+    signature CHAR(88) PRIMARY KEY,
+    slot BIGINT NOT NULL,
+    pool_address CHAR(44),
+    token_mint CHAR(44),
+    locked_notional_usd DECIMAL(18, 2),
+    lock_duration_seconds INT,
+    unlock_timestamp TIMESTAMP,
+    ingestion_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Silver Layer: Whale Signatures
+CREATE TABLE whale_signatures (
+    address CHAR(44) PRIMARY KEY,
+    whale_score INT,
+    total_volume_30d_usd DECIMAL(18, 2),
+    capital_rotation_velocity FLOAT,
+    last_active_slot BIGINT
+);
+
+
 A dedicated service decodes binary/hex data into structured, SQL-ready entities (transactions, instructions, accounts, and events).
 *   **Whale Identification:** Pipelines compute address-level metrics (notional volume, velocity of capital rotation). Addresses breaching thresholds are tagged with a `whale_score`.
 *   **Liquidity-Lock Detection:** Inspects instructions for known lock patterns (LP positions sent to lock contracts, time-locked vaults, renounced authorities). 
