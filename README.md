@@ -14,17 +14,18 @@ ClawVault is a production-grade AI Agent instance built on the **OpenClaw** fram
 ## 2. Data Pipeline Architecture
 The ClawVault data plane is organized as a classic lakehouse, optimized for low-latency Solana ingestion and AI-grade analytics.
 
-graph TD
-    A[Solana RPC: Helius/Alchemy] -->|Raw Logs| B(Bronze: Append-Only Storage)
-    B -->|Normalization| C(Silver: Indexed SQL Tables)
-    C -->|Whale Scoring| D(Gold: Analytic Warehouse)
-    C -->|Lock Detection| D
-    E[Off-Chain Signals: X/Discord] -->|Embeddings| F(Vector DB)
-    D --> G{OpenClaw Agent}
-    F --> G
-    G -->|RAG Narrative| H[Investor Risk Report]
-    style G fill:#f96,stroke:#333,stroke-width:4px
-
+```mermaid
+graph TB
+A[Solana RPC Helius or Alchemy] --> B[Raw logs Bronze append only storage]
+B --> C[Normalization Silver indexed SQL tables]
+C --> D[Whale scoring Gold analytic warehouse]
+D --> E[Chain signals via Discord]
+E --> F[Embeddings Vector DB]
+F --> G[OpenClaw agent]
+G --> H[RAG narrative]
+H --> I[Investor risk report]
+style G fill:#fff6,stroke:#333,stroke-width:2px
+```
 ### Bronze Layer – Raw Ingestion (Helius/Alchemy RPC)
 *   **Streaming Ingestion:** Maintains a loop against Helius/Alchemy Solana RPC endpoints, pulling confirmed transaction logs, account deltas, and program instruction traces.
 *   **Append-Only Store:** Payloads are persisted in a raw store with no mutation, preserving exact RPC responses (hex-encoded instructions, signatures, slot, and log messages).
